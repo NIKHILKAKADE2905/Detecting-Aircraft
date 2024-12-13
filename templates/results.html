@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aircraft Detection Results</title>
+</head>
+<body>
+    <h1>Aircraft Detection Results</h1>
+    <p><strong>Aircraft Name:</strong> {{ aircraft_name }}</p>
+    <p><strong>Confidence:</strong> {{ confidence }}</p>
+    <p><strong>Description:</strong> {{ description }}</p>
+    <br>
+
+    <!-- Embed the audio dynamically -->
+    <audio autoplay>
+        <source src="{{ audio_url }}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <br>
+    <a href="/">Go Back</a>
+</body>
+</html>

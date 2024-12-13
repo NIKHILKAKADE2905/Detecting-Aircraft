@@ -1,0 +1,12 @@
+Flask
+numpy
+scikit-learn
+tensorflow
+pillow
+werkzeug
+huggingface-hub
+gdown
+gunicorn
+gTTS
+playsound
+pandas
