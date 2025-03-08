@@ -4,21 +4,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aircraft Detection Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px 30px;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #555;
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        .media-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        a {
+            text-decoration: none;
+            color: white;
+            background: #007BFF;
+            padding: 10px 20px;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+        a:hover {
+            background: #0056b3;
+        }
+        audio {
+            flex-shrink: 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Aircraft Detection Results</h1>
-    <p><strong>Aircraft Name:</strong> {{ aircraft_name }}</p>
-    <p><strong>Confidence:</strong> {{ confidence }}</p>
-    <p><strong>Description:</strong> {{ description }}</p>
-    <br>
+    <div class="container">
+        <h1>Aircraft Detection Results</h1>
+        <p><strong>Aircraft Name:</strong> {{ aircraft_name }}</p>
+        <p><strong>Confidence:</strong> {{ confidence }}</p>
+        <p><strong>Description:</strong> {{ description }}</p>
 
-    <!-- Embed the audio dynamically -->
-    <audio autoplay>
-        <source src="{{ audio_url }}" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
-
-    <br>
-    <a href="/">Go Back</a>
+        <div class="media-container">
+            <audio controls autoplay>
+                <source src="{{ audio_url }}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+            <a href="/">Go Back</a>
+        </div>
+    </div>
 </body>
 </html>
