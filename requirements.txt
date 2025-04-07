@@ -1,11 +1,9 @@
 numpy
 tensorflow
-Flask
 scikit-learn
 pillow
 werkzeug
 huggingface-hub
 gdown
 gTTS
-gunicorn
 streamlit
