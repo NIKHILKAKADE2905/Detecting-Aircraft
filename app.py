@@ -1,56 +1,36 @@
-# import all necessary libraries
 import os
 import numpy as np
 import tensorflow as tf
-from flask import Flask, request, jsonify, render_template, Response
-from werkzeug.utils import secure_filename
-from tensorflow.keras.models import load_model # type: ignore
-from huggingface_hub import InferenceClient
 from PIL import Image
-import gdown
+from huggingface_hub import InferenceClient
 from gtts import gTTS
 from io import BytesIO
+import gdown
+import streamlit as st
+import base64
 
-
-
-# Initialize Flask app
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = './uploads'  # Directory to save uploaded images
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-# Get the current directory
-current_folder = os.getcwd()
-
-# List all .h5 files in the current directory
-h5_files = [f for f in os.listdir(current_folder) if f.endswith(".h5")]
-
-if "aircraft_detector_model.h5" in h5_files:
-    file_path = "aircraft_detector_model.h5"
-else:
+# Check or download the model file
+MODEL_FILENAME = "aircraft_detector_model.h5"
+if not os.path.exists(MODEL_FILENAME):
     file_id = "1DbQ18dFFRiqDJ_G89hyq9HGASo9s9yWz"
     url = f"https://drive.google.com/uc?id={file_id}"
-    output = "aircraft_detector_model.h5"
-    gdown.download(url, output, quiet=False)
-    file_path = "aircraft_detector_model.h5"  # Update with your model path
+    gdown.download(url, MODEL_FILENAME, quiet=False)
 
-# detect aircraft name using input image and output an information about the aircraft in text and audio format 
+# Aircraft detector class
 class AircraftDetector:
-    def __init__(self, model, api_key, target_size=(224, 224)):
+    def __init__(self, model_path, api_key, target_size=(224, 224)):
         self.target_size = target_size
-        self.model = load_model(model)
+        self.model = tf.keras.models.load_model(model_path)
         self.client = InferenceClient(api_key=api_key)
 
-    def preprocess_image(self, image_path):
-        img = Image.open(image_path).convert('RGB')
-        if img is None:
-            raise FileNotFoundError(f"Image file not found: {image_path}")
-        img_resized = img.resize(self.target_size)
-        img_array = np.asarray(img_resized)
-        img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    def preprocess_image(self, image):
+        img = image.convert('RGB').resize(self.target_size)
+        img_array = np.asarray(img)
+        img_array = np.expand_dims(np.asarray(img), axis=0)
         return img_array
 
-    def detect_aircraft(self, image_path):
-        img_array = self.preprocess_image(image_path)
+    def detect_aircraft(self, image):
+        img_array = self.preprocess_image(image)
         predictions = self.model.predict(img_array)
         classes = [
             'A10', 'A400M', 'AG600', 'AH64', 'AV8B', 'An124', 'An22', 'An225',
@@ -64,102 +44,67 @@ class AircraftDetector:
             'V22', 'Vulcan', 'WZ7', 'XB70', 'Y20', 'YF23', 'Z19'
         ]
         predicted_class = classes[np.argmax(predictions)]
-        return predicted_class, np.max(predictions)
+        return predicted_class, float(np.max(predictions))
 
     def run_model(self, text):
         messages = [{"role": "user", "content": text}]
         completion = self.client.chat.completions.create(
-            model="Qwen/Qwen2.5-Coder-32B-Instruct",         
+            model="Qwen/Qwen2.5-Coder-32B-Instruct",
             messages=messages,
             max_tokens=500,
         )
-        mytext = completion.choices[0].message.content
-        output_text = mytext.replace("&", "and")
-        return output_text
+        return completion.choices[0].message.content.replace("&", "and")
 
     def generate_description(self, aircraft_name):
         prompt = f"Provide a short and detailed description of the aircraft named {aircraft_name}."
-        response = {"generated_text": self.run_model(prompt)}
-        return response.get("generated_text", "No description generated.")
+        return self.run_model(prompt)
 
     def text_to_speech(self, text):
         try:
             audio_stream = BytesIO()
-            info = gTTS(text, lang = 'en' )
+            info = gTTS(text, lang='en')
             info.write_to_fp(audio_stream)
             audio_stream.seek(0)
-            return audio_stream 
-
+            return audio_stream
         except Exception as e:
-            print(f"Error during text-to-speech conversion: {e}")
+            st.error(f"Error during text-to-speech conversion: {e}")
             return None
 
+# Streamlit app
+st.title("Aircraft Classifier & Info Generator")
 
-# Flask route for home page
-@app.route('/')
-def home():
-    return render_template('index.html')  # HTML template for uploading images and entering API key
+uploaded_image = st.file_uploader("Upload an Aircraft Image", type=["jpg", "jpeg", "png"])
+api_key = st.text_input("Enter your Hugging Face API Key", type="password")
 
+if st.button("Predict"):
+    if uploaded_image is None or not api_key:
+        st.error("Please upload an image and provide a valid API key.")
+    else:
+        try:
+            image = Image.open(uploaded_image)
+            detector = AircraftDetector(MODEL_FILENAME, api_key)
 
-# Flask route to handle predictions
-@app.route('/predict', methods=['POST'])
-def predict():
-    if 'image' not in request.files or 'api_key' not in request.form:
-        return render_template('error.html', error="Image file and API key are required!")
+            with st.spinner("Detecting aircraft..."):
+                name, confidence = detector.detect_aircraft(image)
+                description = detector.generate_description(name)
+                audio_stream = detector.text_to_speech(description)
 
-    # Save the uploaded image
-    image = request.files['image']
-    api_key = request.form['api_key']
-    filename = secure_filename(image.filename)
-    image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    image.save(image_path)
+            st.success("Detection Complete")
+            st.image(image, caption=f"Detected: {name} ({confidence:.2%})")
+            st.write(f"**Aircraft Name:** {name}")
+            st.write(f"**Confidence:** {confidence:.2%}")
+            st.write(f"**Description:** {description}")
+            if audio_stream:
+                audio_bytes = audio_stream.read()
+                b64 = base64.b64encode(audio_bytes).decode()
+                # st.audio(audio_bytes, format='audio/mp3')
 
-    # Initialize detector
-    detector = AircraftDetector(model=file_path, api_key=api_key)
+                # Automatically play audio with controls for pause/play
+                st.markdown(f'''
+                    <audio controls autoplay>
+                        <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+                    </audio>
+                ''', unsafe_allow_html=True)
 
-    try:
-        # Detect aircraft and generate description
-        aircraft_name, confidence = detector.detect_aircraft(image_path)
-        description = detector.generate_description(aircraft_name)
-
-        # delete the image after detection
-        if os.path.exists(image_path):
-                os.remove(image_path)
-
-        # Convert NumPy confidence to a Python float
-        confidence = float(confidence)
-
-        # Render the results on the webpage
-        return render_template('results.html', 
-                               aircraft_name=aircraft_name, 
-                               confidence=f"{confidence:.2%}",  # Display confidence as percentage
-                               description=description,
-                               audio_url= f"/audio?description={description}&api_key={api_key}")
-
-    except Exception as e:
-        return render_template('error.html', error=str(e))
-
-@app.route('/audio', methods=['GET'])
-def audio():
-    description = request.args.get('description', '')
-    if not description:
-        return "No description provided", 400
-
-    # Initialize the detector to generate audio
-    api_key = request.args.get('api_key')
-    detector = AircraftDetector(model=file_path, api_key=api_key)
-
-    audio_stream = detector.text_to_speech(description)
-
-    if not audio_stream:
-        return "Error generating audio", 500
-
-    # Serve audio bytes
-    return Response(audio_stream, mimetype="audio/mpeg")
-
-
-# Run the Flask app
-if __name__ == "__main__":
-    # app.run(debug=True)
-    app.run(host="0.0.0.0", port=8501, debug=False)
-
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
