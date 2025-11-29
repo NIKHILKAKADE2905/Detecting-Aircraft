@@ -1,8 +1,8 @@
 numpy
-tensorflow==2.18.0
+tensorflow
 scikit-learn
 pillow
 gdown
 gTTS
 streamlit
-openai==2.8.1 
+openai 
