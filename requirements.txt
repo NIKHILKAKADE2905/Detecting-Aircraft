@@ -3,7 +3,7 @@ tensorflow
 scikit-learn
 pillow
 werkzeug
-huggingface-hub
 gdown
 gTTS
 streamlit
+openai

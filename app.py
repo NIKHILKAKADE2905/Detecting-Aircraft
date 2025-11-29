@@ -2,7 +2,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from huggingface_hub import InferenceClient
+from openai import OpenAI
 from gtts import gTTS
 from io import BytesIO
 import gdown
@@ -21,7 +21,8 @@ class AircraftDetector:
     def __init__(self, model_path, api_key, target_size=(224, 224)):
         self.target_size = target_size
         self.model = tf.keras.models.load_model(model_path)
-        self.client = InferenceClient(token = api_key)
+        # self.client = InferenceClient(api_key = api_key)
+        self.client = OpenAI( base_url="https://router.huggingface.co/v1", api_key=api_key)
 
     def preprocess_image(self, image):
         img = image.convert('RGB').resize(self.target_size)
@@ -51,7 +52,7 @@ class AircraftDetector:
         completion = self.client.chat.completions.create(
             model="Qwen/Qwen2.5-Coder-32B-Instruct",
             messages=messages,
-            max_tokens=500,
+            # max_tokens=500,
         )
         return completion.choices[0].message.content.replace("&", "and")
 
