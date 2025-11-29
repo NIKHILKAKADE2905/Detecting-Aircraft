@@ -2,8 +2,7 @@ numpy
 tensorflow
 scikit-learn
 pillow
-werkzeug
 gdown
 gTTS
 streamlit
-openai
+openai==2.8.1 
