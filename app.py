@@ -21,7 +21,7 @@ class AircraftDetector:
     def __init__(self, model_path, api_key, target_size=(224, 224)):
         self.target_size = target_size
         self.model = tf.keras.models.load_model(model_path)
-        self.client = InferenceClient(api_key=api_key)
+        self.client = InferenceClient(token = api_key)
 
     def preprocess_image(self, image):
         img = image.convert('RGB').resize(self.target_size)
