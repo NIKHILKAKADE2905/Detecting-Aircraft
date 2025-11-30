@@ -27,7 +27,9 @@ class AircraftDetector:
     def preprocess_image(self, image):
         img = image.convert('RGB').resize(self.target_size)
         img_array = np.asarray(img)
-        img_array = np.expand_dims(np.asarray(img), axis=0)
+        # img_array = np.expand_dims(np.asarray(img), axis=0)
+        # img_array = np.asarray(img, dtype=np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
         return img_array
 
     def detect_aircraft(self, image):
@@ -83,6 +85,7 @@ if st.button("Predict"):
     else:
         try:
             image = Image.open(uploaded_image)
+            
             detector = AircraftDetector(MODEL_FILENAME, api_key)
 
             with st.spinner("Detecting aircraft..."):
@@ -108,5 +111,5 @@ if st.button("Predict"):
                 ''', unsafe_allow_html=True)
 
         except Exception as e:
-            # st.error(f"Error: {str(e)}")
-            st.error("Error: tuzya nanachi taang")
+            st.error(f"Error: {str(e)}")
+            # st.error("Error: tuzya nanachi taang")
